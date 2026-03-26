@@ -234,8 +234,8 @@ async function getOrCreateParticipant(gameId, userId, invitedBy = null) {
       justInvited = true;
     }
 
-    // Reactivate if was inactive
-    if (!existing.is_active) {
+    // Reactivate if was inactive (and NOT disqualified)
+    if (!existing.is_active && !existing.disqualified) {
       const { data: reactivated } = await supabase
         .from('game_participants')
         .update({ is_active: true, left_at: null, invited_by: invitedBy || existing.invited_by })
@@ -315,50 +315,27 @@ async function findInviterByInviteLink(gameId, link) {
  * Increment invite count and check for number assignment
  */
 async function processNewInvite(gameId, inviterId) {
-  // Increment inviter's count
-  const { data: participant, error: fetchError } = await supabase
-    .from('game_participants')
-    .select('*')
-    .eq('game_id', gameId)
-    .eq('user_id', inviterId)
-    .single();
+  // Use DB function to increment and assign number if needed
+  const { data: result, error } = await supabase
+    .rpc('process_invite_increment', {
+      p_game_id: gameId,
+      p_inviter_id: inviterId
+    });
 
-  if (fetchError || !participant) return null;
-
-  const newCount = participant.invite_count + 1;
-
-  const { data: updated, error } = await supabase
-    .from('game_participants')
-    .update({ invite_count: newCount })
-    .eq('id', participant.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  // Get game config
-  const game = await getGameById(gameId);
-  if (!game) return { updated, numberAssigned: null };
-
-  // Check if a new number should be assigned
-  const previousNumbers = Math.floor(participant.invite_count / game.people_per_number);
-  const newNumbers = Math.floor(newCount / game.people_per_number);
-
-  let numberAssigned = null;
-  if (newNumbers > previousNumbers) {
-    // Assign number using DB function
-    const { data: numberData, error: numError } = await supabase
-      .rpc('assign_number_to_user', {
-        p_game_id: gameId,
-        p_user_id: inviterId,
-      });
-
-    if (!numError) {
-      numberAssigned = numberData;
-    }
+  if (error) {
+    console.error('ProcessInvite error:', error.message);
+    throw error;
   }
 
-  return { updated, numberAssigned, game };
+  // The RPC should return the updated participant and assigned number
+  // Format: { updated: participant, numberAssigned: int, game: game }
+  
+  const game = await getGameById(gameId);
+  return { 
+    updated: result.updated_participant, 
+    numberAssigned: result.assigned_number, 
+    game 
+  };
 }
 
 /**

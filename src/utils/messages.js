@@ -115,11 +115,11 @@ const msgs = {
     );
   },
 
-  userStats: (participant) =>
+  userStats: (participant, rank = '--', total = '--') =>
     `📊 <b>Mening statistikam</b>\n\n` +
     `👥 Taklif qilganlar: <b>${participant.invite_count || 0}</b>\n` +
     `🔢 Raqamlar soni: <b>${participant.number_count || 0}</b>\n` +
-    `🏆 O'rnim: <b>--</b> / --`,
+    `🏆 O'rnim: <b>${rank}</b> / ${total}`,
 
   topList: (participants) => {
     if (!participants.length) return '📊 Hali ishtirokchilar yo\'q.';

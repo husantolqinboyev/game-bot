@@ -388,7 +388,8 @@ bot.action(/^user:stats:(.+)$/, async (ctx) => {
   const gameId = ctx.match[1];
   await ctx.answerCbQuery();
   const participant = await gameService.getParticipantDetails(gameId, ctx.from.id);
-  await ctx.reply(msgs.userStats(participant), { parse_mode: 'HTML' });
+  const { rank, total } = await gameService.getUserRank(gameId, ctx.from.id);
+  await ctx.reply(msgs.userStats(participant, rank, total), { parse_mode: 'HTML' });
 });
 
 bot.hears('📊 Statistika', async (ctx) => {
@@ -399,7 +400,8 @@ bot.hears('📊 Statistika', async (ctx) => {
   }
   
   const participant = await gameService.getParticipantDetails(gameId, ctx.from.id);
-  await ctx.reply(msgs.userStats(participant), { parse_mode: 'HTML' });
+  const { rank, total } = await gameService.getUserRank(gameId, ctx.from.id);
+  await ctx.reply(msgs.userStats(participant, rank, total), { parse_mode: 'HTML' });
 });
 
   // Invite link

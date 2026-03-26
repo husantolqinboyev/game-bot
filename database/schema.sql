@@ -164,7 +164,49 @@ BEGIN
   RETURN v_number;
 EXCEPTION
   WHEN unique_violation THEN
+    -- In case of race condition, try again
     RETURN assign_number_to_user(p_game_id, p_user_id);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Process invite increment and handle number assignment atomically
+CREATE OR REPLACE FUNCTION process_invite_increment(p_game_id UUID, p_inviter_id BIGINT)
+RETURNS JSON AS $$
+DECLARE
+  v_ppn INT;
+  v_old_count INT;
+  v_new_count INT;
+  v_number_assigned INT := NULL;
+  v_updated_participant RECORD;
+BEGIN
+  -- Get people_per_number
+  SELECT people_per_number INTO v_ppn FROM games WHERE id = p_game_id;
+  
+  -- Update invite count atomically
+  UPDATE game_participants 
+  SET invite_count = invite_count + 1 
+  WHERE game_id = p_game_id AND user_id = p_inviter_id
+  RETURNING invite_count - 1, invite_count INTO v_old_count, v_new_count;
+
+  -- If not found, create it (should already exist though)
+  IF NOT FOUND THEN
+    INSERT INTO game_participants (game_id, user_id, invite_count)
+    VALUES (p_game_id, p_inviter_id, 1)
+    RETURNING 0, 1 INTO v_old_count, v_new_count;
+  END IF;
+
+  -- Check if a new number should be assigned
+  IF floor(v_new_count / v_ppn) > floor(v_old_count / v_ppn) THEN
+    SELECT assign_number_to_user(p_game_id, p_inviter_id) INTO v_number_assigned;
+  END IF;
+
+  -- Get updated participant record
+  SELECT * INTO v_updated_participant FROM game_participants WHERE game_id = p_game_id AND user_id = p_inviter_id;
+
+  RETURN json_build_object(
+    'updated_participant', row_to_json(v_updated_participant),
+    'assigned_number', v_number_assigned
+  );
 END;
 $$ LANGUAGE plpgsql;
 
