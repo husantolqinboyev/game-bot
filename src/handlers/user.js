@@ -319,6 +319,39 @@ const transferScene = new Scenes.WizardScene(
   }
 );
 
+/**
+ * Recover current game ID from database if session is lost
+ */
+async function ensureGameId(ctx) {
+  if (ctx.session?.currentGameId) return ctx.session.currentGameId;
+
+  // 1. Try to find games where user is a participant
+  const userGames = await gameService.getUserGames(ctx.from.id);
+  if (userGames.length > 0) {
+    ctx.session = ctx.session || {};
+    ctx.session.currentGameId = userGames[0].id;
+    return userGames[0].id;
+  }
+
+  // 2. Fallback to moderator games
+  const modGames = await gameService.getModeratorGames(ctx.from.id);
+  if (modGames.length > 0) {
+    ctx.session = ctx.session || {};
+    ctx.session.currentGameId = modGames[0].id;
+    return modGames[0].id;
+  }
+
+  // 3. Fallback to games created by the user (for admins)
+  const createdGames = await gameService.getCreatedGames(ctx.from.id);
+  if (createdGames.length > 0) {
+    ctx.session = ctx.session || {};
+    ctx.session.currentGameId = createdGames[0].id;
+    return createdGames[0].id;
+  }
+
+  return null;
+}
+
 // =====================================================
 // USER CALLBACK HANDLERS
 // =====================================================
@@ -332,15 +365,7 @@ function registerUserCallbacks(bot) {
   });
 
 bot.hears('🔢 Raqamlarim', async (ctx) => {
-  let gameId = ctx.session?.currentGameId;
-  
-  // If no game in session, try to find user's active game
-  if (!gameId) {
-    const games = await gameService.getModeratorGames(ctx.from.id);
-    if (games.length > 0) {
-      gameId = games[0].id;
-    }
-  }
+  const gameId = await ensureGameId(ctx);
   
   if (!gameId) {
     return ctx.reply('❌ Iltimos, avval o\'yinga qo\'shiling.');
@@ -367,14 +392,7 @@ bot.action(/^user:stats:(.+)$/, async (ctx) => {
 });
 
 bot.hears('📊 Statistika', async (ctx) => {
-  let gameId = ctx.session?.currentGameId;
-  
-  if (!gameId) {
-    const games = await gameService.getModeratorGames(ctx.from.id);
-    if (games.length > 0) {
-      gameId = games[0].id;
-    }
-  }
+  const gameId = await ensureGameId(ctx);
   
   if (!gameId) {
     return ctx.reply('❌ Iltimos, avval o\'yinga qo\'shiling.');
@@ -418,14 +436,7 @@ bot.hears('📊 Statistika', async (ctx) => {
   });
 
   bot.hears('🔗 Taklif linki', async (ctx) => {
-  let gameId = ctx.session?.currentGameId;
-  
-  if (!gameId) {
-    const games = await gameService.getModeratorGames(ctx.from.id);
-    if (games.length > 0) {
-      gameId = games[0].id;
-    }
-  }
+  const gameId = await ensureGameId(ctx);
   
   if (!gameId) {
     return ctx.reply('❌ Iltimos, avval o\'yinga qo\'shiling.');
@@ -460,14 +471,7 @@ bot.hears('📊 Statistika', async (ctx) => {
   });
 
   bot.hears('📜 O\'yin shartlari', async (ctx) => {
-  let gameId = ctx.session?.currentGameId;
-  
-  if (!gameId) {
-    const games = await gameService.getModeratorGames(ctx.from.id);
-    if (games.length > 0) {
-      gameId = games[0].id;
-    }
-  }
+  const gameId = await ensureGameId(ctx);
   
   if (!gameId) {
     return ctx.reply('❌ Iltimos, avval o\'yinga qo\'shiling.');
@@ -492,14 +496,7 @@ bot.hears('📊 Statistika', async (ctx) => {
   });
 
   bot.hears('🏆 TOP ishtirokchilar', async (ctx) => {
-  let gameId = ctx.session?.currentGameId;
-  
-  if (!gameId) {
-    const games = await gameService.getModeratorGames(ctx.from.id);
-    if (games.length > 0) {
-      gameId = games[0].id;
-    }
-  }
+  const gameId = await ensureGameId(ctx);
   
   if (!gameId) {
     return ctx.reply('❌ Iltimos, avval o\'yinga qo\'shiling.');
@@ -517,14 +514,7 @@ bot.hears('📊 Statistika', async (ctx) => {
   });
 
   bot.hears('🔄 Transfer', async (ctx) => {
-  let gameId = ctx.session?.currentGameId;
-  
-  if (!gameId) {
-    const games = await gameService.getModeratorGames(ctx.from.id);
-    if (games.length > 0) {
-      gameId = games[0].id;
-    }
-  }
+  const gameId = await ensureGameId(ctx);
   
   if (!gameId) {
     return ctx.reply('❌ Iltimos, avval o\'yinga qo\'shiling.');

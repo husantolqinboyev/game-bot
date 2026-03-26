@@ -134,6 +134,21 @@ async function getModeratorGames(userId) {
 }
 
 /**
+ * Get ACTIVE games where user is a participant
+ */
+async function getUserGames(userId) {
+  const { data, error } = await supabase
+    .from('game_participants')
+    .select('game_id, games!inner(*, groups(*))')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .eq('games.is_active', true);
+
+  if (error) throw error;
+  return (data || []).map((p) => p.games).filter(Boolean);
+}
+
+/**
  * Get all moderators for a game
  */
 async function getGameModerators(gameId) {
@@ -176,6 +191,20 @@ async function isModerator(gameId, userId) {
 // =====================================================
 // PARTICIPANT SERVICE
 // =====================================================
+
+/**
+ * Get ACTIVE games created by user
+ */
+async function getCreatedGames(userId) {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*, groups(*)')
+    .eq('created_by', userId)
+    .eq('is_active', true);
+
+  if (error) throw error;
+  return data || [];
+}
 
 /**
  * Get or create participant in a game
@@ -557,6 +586,8 @@ module.exports = {
   endGame,
   addModerator,
   getModeratorGames,
+  getUserGames,
+  getCreatedGames,
   isModerator,
   getOrCreateParticipant,
   processNewInvite,
