@@ -21,6 +21,11 @@ function startScheduler(bot) {
   // Render's free tier sleeps at 15 mins of inactivity.
   cron.schedule('*/10 * * * *', async () => {
     try {
+      // Small delay on first start to avoid 502 Bad Gateway while Render starts up
+      if (process.uptime() < 60) {
+        console.log('[CRON] Delaying initial keep-alive for 30s...');
+        await new Promise(r => setTimeout(r, 30000));
+      }
       await performKeepAlive();
     } catch (err) {
       console.error('[CRON] Keep-alive error:', err.message);

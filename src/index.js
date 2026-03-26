@@ -131,17 +131,30 @@ async function main() {
   // Start scheduler
   startScheduler(bot);
 
-  // Launch bot
-  await bot.launch({
-    allowedUpdates: [
-      'message',
-      'callback_query',
-      'my_chat_member',
-      'chat_member',
-    ],
-  });
+  // Launch bot with retry for 409 Conflict (common on Render/Heroku)
+  const launchBot = async (retries = 5) => {
+    try {
+      await bot.launch({
+        dropPendingUpdates: true, // Clear old messages
+        allowedUpdates: [
+          'message',
+          'callback_query',
+          'my_chat_member',
+          'chat_member',
+        ],
+      });
+      console.log('✅ Bot muvaffaqiyatli ishga tushdi!');
+    } catch (err) {
+      if (err.response?.error_code === 409 && retries > 0) {
+        console.warn(`⚠️ Telegram Conflict (409). Old instance still active. Retrying in 5s... (${retries} left)`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return launchBot(retries - 1);
+      }
+      throw err;
+    }
+  };
 
-  console.log('✅ Bot muvaffaqiyatli ishga tushdi!');
+  await launchBot();
 
   // Graceful stop
   process.once('SIGINT', () => bot.stop('SIGINT'));
