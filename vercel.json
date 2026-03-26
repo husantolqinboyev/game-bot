@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "cron-handler.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/cron",
+      "methods": ["GET"],
+      "dest": "cron-handler.js"
+    }
+  ],
+  "env": {
+    "BOT_TOKEN": "@bot_token",
+    "MONITOR_CHAT_ID": "@monitor_chat_id"
+  }
+}
