@@ -122,6 +122,15 @@ CREATE TABLE IF NOT EXISTS broadcasts (
 );
 
 -- =====================================================
+-- HEARTBEAT (To keep Supabase project active)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS bot_heartbeat (
+  id           INTEGER PRIMARY KEY DEFAULT 1,
+  last_ping    TIMESTAMPTZ DEFAULT NOW(),
+  status       TEXT DEFAULT 'active'
+);
+
+-- =====================================================
 -- INDEXES for performance
 -- =====================================================
 CREATE INDEX IF NOT EXISTS idx_games_group_id ON games(group_id);

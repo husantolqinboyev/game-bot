@@ -14,11 +14,26 @@ const {
 const { registerGroupHandlers } = require('./handlers/group');
 const { handleBroadcastMessage } = require('./handlers/broadcast');
 const { startScheduler } = require('./services/scheduler');
+const http = require('http');
 
 // =====================================================
 // BOT SETUP
 // =====================================================
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+// Simple Health-check server for Render/Vercel
+const PORT = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  if (req.url === '/health' || req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'OK', uptime: process.uptime() }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(PORT, () => {
+  console.log(`🚀 Health-check server running on port ${PORT}`);
+});
 
 // Stage (scenes)
 const stage = new Scenes.Stage([createGameScene, transferScene]);
