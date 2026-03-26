@@ -1,0 +1,20 @@
+{
+  "name": "guruh-oyini-bot",
+  "version": "1.0.0",
+  "description": "Guruhlar Oyini AI - Telegram Contest Bot",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3",
+    "@supabase/supabase-js": "^2.39.3",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.4.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
