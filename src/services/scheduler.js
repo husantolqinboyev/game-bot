@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const https = require('https');
+const http = require('http');
 const supabase = require('../database/supabase');
 const gameService = require('../services/gameService');
 const { msgs } = require('../utils/messages');
@@ -17,9 +18,10 @@ function startScheduler(bot) {
     }
   });
 
-  // 2. Keep-alive job (every 10 minutes)
+  // 2. Keep-alive job (every 5 minutes)
   // Render's free tier sleeps at 15 mins of inactivity.
-  cron.schedule('*/10 * * * *', async () => {
+  // 5 mins is safer and more aggressive.
+  cron.schedule('*/5 * * * *', async () => {
     try {
       // Small delay on first start to avoid 502 Bad Gateway while Render starts up
       if (process.uptime() < 60) {
@@ -54,7 +56,9 @@ async function performKeepAlive() {
   const botUrl = process.env.BOT_URL;
   if (botUrl) {
     const url = botUrl.endsWith('/') ? botUrl : botUrl + '/';
-    https.get(url, (res) => {
+    const protocol = url.startsWith('https') ? https : http;
+    
+    protocol.get(url, (res) => {
       console.log(`✅ [CRON] Self-ping successful: ${res.statusCode}`);
     }).on('error', (err) => {
       console.error('❌ [CRON] Self-ping failed:', err.message);
